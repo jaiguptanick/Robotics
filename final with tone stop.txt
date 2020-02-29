@@ -1,0 +1,165 @@
+
+#include "pitches.h"
+#include <SoftwareSerial.h>
+
+// notes in the melody:
+int melody[] = {
+  NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4
+};
+
+// note durations: 4 = quarter note, 8 = eighth note, etc.:
+int noteDurations[] = {
+  4, 8, 8, 4, 4, 4, 4, 4
+};
+
+SoftwareSerial BT(10, 11); //TX, RX
+String readvoice;
+int time;
+int distance;
+int trigger_pin = 2;
+void setup() {
+  BT.begin(9600);
+  Serial.begin(9600);
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode (trigger_pin, OUTPUT);
+  pinMode (7, INPUT);// trigger=2and echo 7,9,12
+  pinMode (9, INPUT);
+  pinMode (12, INPUT);
+}
+void loop() {
+  while (BT.available()) { //Check if there is an available byte to read
+    delay(10); //Delay added to make thing stable
+    char c = BT.read(); //Conduct a serial read
+    readvoice += c; //build the string- "forward", "reverse", "left" and "right"
+  }
+  if (readvoice.length() > 0) {
+    Serial.println(readvoice);
+
+    if (readvoice == "forward")
+    { digitalWrite (trigger_pin, HIGH);
+      delayMicroseconds (10);
+      digitalWrite (trigger_pin, LOW);
+      time = pulseIn (9, HIGH);
+      distance = (time * 0.034) / 2;
+      if (distance <= 6)
+      { digitalWrite (3, LOW);
+        digitalWrite (4, LOW);
+        digitalWrite (5, LOW);
+        digitalWrite (6, LOW);
+        // iterate over the notes of the melody:
+        for (int thisNote = 0; thisNote < 8; thisNote++) {
+
+          // to calculate the note duration, take one second divided by the note type.
+          //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+          int noteDuration = 1000 / noteDurations[thisNote];
+          tone(8, melody[thisNote], noteDuration);
+
+          // to distinguish the notes, set a minimum time between them.
+          // the note's duration + 30% seems to work well:
+          int pauseBetweenNotes = noteDuration * 1.30;
+          delay(pauseBetweenNotes);
+          // stop the tone playing:
+          noTone(8);
+        }
+      }
+      else {
+        digitalWrite(3, HIGH);
+        digitalWrite (4, HIGH);
+        digitalWrite(5, LOW);
+        digitalWrite(6, LOW);
+        delay(100);
+      }
+    }
+
+    else if (readvoice == "reverse")
+    {
+      digitalWrite(3, LOW);
+      digitalWrite(4, LOW);
+      digitalWrite(5, HIGH);
+      digitalWrite(6, HIGH);
+       tone(8, 25000, 20);
+        delay(500);
+        noTone(8);
+      delay(100);
+    }
+
+    else if (readvoice == "right")
+    {
+      digitalWrite (trigger_pin, HIGH);
+      delayMicroseconds (10);
+      digitalWrite (trigger_pin, LOW);
+      time = pulseIn (12, HIGH);
+      distance = (time * 0.034) / 2;
+      if (distance <= 12)
+      { digitalWrite (3, LOW);
+        digitalWrite (4, LOW);
+        digitalWrite (5, LOW);
+        digitalWrite (6, LOW);
+        tone(8, 1000);
+        delay(500);
+        noTone(8);
+        delay(500);
+        tone(8, 1000);
+        delay(500);
+        noTone(8);
+        delay(500);
+      }
+      else {
+        digitalWrite (3, HIGH);
+        digitalWrite (4, LOW);
+        digitalWrite (5, LOW);
+        digitalWrite (6, LOW);
+        delay (100);
+      }
+
+    }
+
+    else if ( readvoice == "left")
+    { digitalWrite (trigger_pin, HIGH);
+      delayMicroseconds (10);
+      digitalWrite (trigger_pin, LOW);
+      time = pulseIn (7, HIGH);
+      distance = (time * 0.034) / 2;
+      if (distance <= 12)
+      { digitalWrite (3, LOW);
+        digitalWrite (4, LOW);
+        digitalWrite (5, LOW);
+        digitalWrite (6, LOW);
+        tone(8, 1000);
+        delay(500);
+        noTone(8);
+        delay(500);
+        tone(8, 1000);
+        delay(500);
+        noTone(8);
+        delay(500);
+      }
+      else {
+        digitalWrite (3, LOW);
+        digitalWrite (4, HIGH);
+        digitalWrite (5, LOW);
+        digitalWrite (6, LOW);
+        delay (100);
+      }
+    }
+
+    else if (readvoice == "stop")
+    {
+      digitalWrite (3, LOW);
+      digitalWrite (4, LOW);
+      digitalWrite (5, LOW);
+      digitalWrite (6, LOW);
+        tone(8, 25000, 20);
+        delay(500);
+        noTone(8);
+      delay (100);
+    }
+
+
+
+    readvoice = "";
+  }
+} //Reset the variable
